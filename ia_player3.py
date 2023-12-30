@@ -43,12 +43,10 @@ def distance(point1: Vector, point2: Vector) -> float:
 scanned_fish_ids = set()
 
 
-def select_target(
-    drone: Drone, visible_fish: List[Fish], scanned_fish_ids: set
-) -> (Vector, int):
+def select_target(drone: Drone, visible_fish: List[Fish], scanned_fish_ids: set) -> (int, Vector, int):
     """Sélectionne le poisson cible pour le drone, en ignorant les poissons déjà scannés."""
     if not visible_fish:
-        return None, 1  # Aucun poisson visible, retourner None avec light activé
+        return None, None, 0  # Aucun poisson visible, retourner None avec light activé
 
     # Filtrer les poissons déjà scannés
     unscanned_fish = [
@@ -56,19 +54,37 @@ def select_target(
     ]
 
     if not unscanned_fish:
-        return None, 1  # Aucun poisson non-scanné, retourner None avec light activé
-
+        return None, None, 0  # Aucun poisson non-scanné, retourner None avec light activé
+    
     # Choisissez le poisson le plus proche ou le plus précieux parmi les non-scannés
     target_fish = min(unscanned_fish, key=lambda fish: distance(drone.pos, fish.pos))
-    return target_fish.pos, 1  # Retourner la position du poisson avec light activé
+    # Retournez également l'identifiant du poisson cible et light allumée
+    return target_fish.fish_id, target_fish.pos, 1
 
 
 # Fonction pour déterminer un mouvement aléatoire des drones
-def random_movement_strategy(drone: Drone, max_x: int, max_y: int):
-    target_x = random.randint(0, max_x)
-    target_y = random.randint(0, max_y)
-    light = 1  # Active toujours la lumière (peut être modifié)
+def random_movement_strategy(drone: Drone, visible_fish: List[Fish], map_width: int, map_height: int, detection_radius: int):
+    # Choisir un point aléatoire sur la carte
+    target_x = random.randint(0, map_width)
+    target_y = random.randint(0, map_height)
+
+    # Vérifier si un poisson est à proximité
+    fish_nearby = any(
+        distance(drone.pos, fish.pos) <= detection_radius
+        for fish in visible_fish
+    )
+
+    # Allumer la lumière seulement si un poisson est à proximité
+    light = 1 if fish_nearby else 0
+
     return target_x, target_y, light
+
+# def random_movement_strategy(drone: Drone, max_x: int, max_y: int):
+#     target_x = random.randint(0, max_x)
+#     target_y = random.randint(0, max_y)
+#     light = 1  # Active toujours la lumière (peut être modifié)
+#     return target_x, target_y, light
+
 
 
 # Dictionnaire pour stocker les détails des poissons
@@ -148,13 +164,15 @@ while True:
 
     # Dans la boucle de jeu
     for drone in my_drones:
-        target_pos, light = select_target(drone, visible_fish, scanned_fish_ids)
+        target_fish_id, target_pos, light = select_target(drone, visible_fish, scanned_fish_ids)
         if target_pos:
             # Déplacez le drone vers le poisson cible
+            # (logique de déplacement du drone)
+            # Si le poisson est scanné, ajoutez-le à l'ensemble des poissons scannés
+            scanned_fish_ids.add(target_fish_id)
             print(f"MOVE {target_pos.x} {target_pos.y} {light}")
         else:
             # Aucun poisson cible non scanné, appliquez une stratégie de repli
-            target_x, target_y, light = random_movement_strategy(
-                drone, max_x=10000, max_y=10000
-            )
+            target_x, target_y, light = random_movement_strategy(drone, visible_fish, 10000, 10000, 2000)
             print(f"MOVE {target_x} {target_y} {light}")
+
