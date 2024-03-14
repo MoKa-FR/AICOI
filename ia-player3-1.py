@@ -159,9 +159,10 @@ def get_next_move(path: List[Vector], drone: Drone) -> Vector:
 
 # Mettre à jour l'état du jeu
 def update_game_state(drone: Drone, visible_fish: List[Fish], scanned_fish_ids: set):
-    # Ici, vous devriez mettre à jour l'état du drone (position, batterie, etc.)
-    # et potentiellement la liste des poissons visibles, selon la logique de votre jeu
-    pass
+    # Mettre à jour les poissons scannés par le drone
+    for fish in visible_fish:
+        if fish.fish_id in drone.scans:
+            scanned_fish_ids.add(fish.fish_id)
 
 # Fonction pour déterminer un mouvement aléatoire des drones
 def random_movement_strategy(drone: Drone, visible_fish: List[Fish], map_width: int, map_height: int, detection_radius: int):
@@ -171,7 +172,7 @@ def random_movement_strategy(drone: Drone, visible_fish: List[Fish], map_width: 
 
     # Vérifier si un poisson est à proximité
     fish_nearby = any(
-        euclidean_distance_drone_fish(drone.pos, fish.pos) <= detection_radius
+        euclidean_distance_drone_fish(drone, fish) <= detection_radius
         for fish in visible_fish
     )
 
